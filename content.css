@@ -1,0 +1,8 @@
+.dark-video-enabled {
+  filter: invert(var(--dark-video-invert, 0.92))
+          hue-rotate(var(--dark-video-hue, 180deg))
+          brightness(var(--dark-video-brightness, 0.9))
+          contrast(var(--dark-video-contrast, 1.02))
+          saturate(var(--dark-video-saturation, 0.9)) !important;
+}
+video.dark-video-enabled { transform: translateZ(0); }
