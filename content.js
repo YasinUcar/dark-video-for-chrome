@@ -1,175 +1,158 @@
+// Video Karanlık Mod - content script
+//
+// Sayfadaki <video> etiketlerini bulur, oynarken periyodik olarak küçük bir
+// canvas'a kare çizip ortalama parlaklığı ölçer. Arka plan "açık" (beyaza
+// yakın) ise videoya bir CSS filtresi uygulayarak karanlığa çevirir.
+//
+// ÖNEMLİ SINIRLAMA: Bazı sitelerde (özellikle YouTube ve DRM korumalı
+// içerikler) tarayıcı, videonun piksellerini JS ile okumayı güvenlik
+// gereği tamamen engeller (canvas "tainted" hale gelir). Bu durumda
+// otomatik algılama o video için çalışmaz; kullanıcı popup'tan otomatik
+// algılamayı kapatıp sabit mod seçebilir ya da Alt+Shift+D kısayoluyla
+// o sayfadaki videoyu elle aç/kapat yapabilir.
+
 (() => {
   const DEFAULTS = {
-    enabled: true,
-    mode: 'smart',
-    invert: 0.92,
-    brightness: 0.90,
-    contrast: 1.02,
-    saturation: 0.90,
-    whiteThreshold: 0.62
+    globalEnabled: true,
+    autoDetect: true,
+    threshold: 140, // 0-255 parlaklık; yüksek = sadece çok açık kareler karanlığa çevrilir
+    mode: 'invert', // 'invert' | 'dim'
+    disabledSites: [],
+    fallbackWhenBlocked: false // piksel okunamadığında (CORS) ne yapılacağı
   };
 
-  let settings = { ...DEFAULTS };
-  let started = false;
-  const timers = new WeakMap();
+  const CHECK_INTERVAL_MS = 1500;
+  const SAMPLE_W = 16;
+  const SAMPLE_H = 9;
 
-  chrome.storage.sync.get(DEFAULTS, (saved) => {
-    settings = { ...DEFAULTS, ...saved };
+  let settings = { ...DEFAULTS };
+  let pageForce = null; // null: ayarları takip et, true/false: bu sayfa için geçici zorlama
+
+  // --- Anlık sayfa geneli aç/kapat (klavye kısayolu / popup butonu) ---
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg && msg.type === 'TOGGLE_PAGE_DARK') {
+      pageForce = pageForce === true ? false : true;
+      retickAllVideos();
+    }
+  });
+
+  // --- Ayarları yükle ---
+  chrome.storage.local.get(DEFAULTS, (stored) => {
+    settings = { ...DEFAULTS, ...stored };
     start();
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'sync') return;
-    for (const [key, change] of Object.entries(changes)) {
-      settings[key] = change.newValue;
+    if (area !== 'local') return;
+    let changed = false;
+    for (const key of Object.keys(changes)) {
+      if (key in DEFAULTS) {
+        settings[key] = changes[key].newValue;
+        changed = true;
+      }
     }
-    refreshAll();
+    if (changed) retickAllVideos();
   });
 
+  // --- Video takibi ---
+  const knownVideos = new Set();
+  const intervals = new WeakMap();
+
   function start() {
-    if (started) return;
-    started = true;
-    refreshAll();
-
+    scan(document);
     const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType !== Node.ELEMENT_NODE) continue;
-          if (node.matches?.('video') || node.querySelector?.('video')) {
-            queueRefresh();
-            return;
-          }
-        }
+      for (const m of mutations) {
+        m.addedNodes.forEach((node) => {
+          if (node.nodeType !== 1) return;
+          if (node.tagName === 'VIDEO') initVideo(node);
+          else if (node.querySelectorAll) scan(node);
+        });
       }
     });
-
-    observer.observe(document.documentElement || document, {
-      childList: true,
-      subtree: true
-    });
-
-    setInterval(refreshAll, 2500);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  function queueRefresh() {
-    clearTimeout(queueRefresh.timer);
-    queueRefresh.timer = setTimeout(refreshAll, 100);
+  function scan(root) {
+    root.querySelectorAll?.('video').forEach(initVideo);
   }
 
-  function refreshAll() {
-    document.querySelectorAll('video').forEach(prepareVideo);
+  function initVideo(video) {
+    if (knownVideos.has(video)) return;
+    knownVideos.add(video);
+    tick(video);
+    video.addEventListener('play', () => startLoop(video));
+    video.addEventListener('pause', () => stopLoop(video));
+    video.addEventListener('emptied', () => stopLoop(video));
+    if (!video.paused) startLoop(video);
   }
 
-  function prepareVideo(video) {
-    applyVariables(video);
+  function startLoop(video) {
+    if (intervals.has(video)) return;
+    intervals.set(video, setInterval(() => tick(video), CHECK_INTERVAL_MS));
+  }
 
-    if (!settings.enabled) {
-      disable(video);
-      cancelSmartCheck(video);
+  function stopLoop(video) {
+    const id = intervals.get(video);
+    if (id) {
+      clearInterval(id);
+      intervals.delete(video);
+    }
+  }
+
+  function retickAllVideos() {
+    knownVideos.forEach(tick);
+  }
+
+  // --- Karar mantığı ---
+  function tick(video) {
+    if (!document.body.contains(video)) {
+      stopLoop(video);
+      knownVideos.delete(video);
       return;
     }
 
-    if (settings.mode === 'always') {
-      cancelSmartCheck(video);
-      enable(video);
+    if (pageForce !== null) {
+      setDark(video, pageForce);
       return;
     }
 
-    scheduleSmartCheck(video);
+    if (!settings.globalEnabled) return setDark(video, false);
+    if (settings.disabledSites.includes(location.hostname)) return setDark(video, false);
+    if (!settings.autoDetect) return setDark(video, true);
+
+    const brightness = sampleBrightness(video);
+    if (brightness === null) return setDark(video, settings.fallbackWhenBlocked);
+    setDark(video, brightness >= settings.threshold);
   }
 
-  function applyVariables(video) {
-    video.style.setProperty('--dark-video-invert', String(settings.invert));
-    video.style.setProperty('--dark-video-brightness', String(settings.brightness));
-    video.style.setProperty('--dark-video-contrast', String(settings.contrast));
-    video.style.setProperty('--dark-video-saturation', String(settings.saturation));
+  function setDark(video, on) {
+    video.classList.toggle('vdm-invert', on && settings.mode === 'invert');
+    video.classList.toggle('vdm-dim', on && settings.mode === 'dim');
   }
 
-  function scheduleSmartCheck(video) {
-    cancelSmartCheck(video);
-
-    if (video.readyState < 2) {
-      const id = setTimeout(() => scheduleSmartCheck(video), 350);
-      timers.set(video, { type: 'timeout', id });
-      return;
+  function sampleBrightness(video) {
+    if (video.readyState < 2 || video.videoWidth === 0) return null;
+    let canvas = video.__vdmCanvas;
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.width = SAMPLE_W;
+      canvas.height = SAMPLE_H;
+      video.__vdmCanvas = canvas;
     }
-
-    if ('requestVideoFrameCallback' in video) {
-      const id = video.requestVideoFrameCallback(() => smartCheck(video));
-      timers.set(video, { type: 'rvfc', id });
-    } else {
-      const id = setTimeout(() => smartCheck(video), 350);
-      timers.set(video, { type: 'timeout', id });
-    }
-  }
-
-  function cancelSmartCheck(video) {
-    const pending = timers.get(video);
-    if (!pending) return;
-
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     try {
-      if (pending.type === 'rvfc' && video.cancelVideoFrameCallback) {
-        video.cancelVideoFrameCallback(pending.id);
-      } else if (pending.type === 'timeout') {
-        clearTimeout(pending.id);
-      }
-    } catch {}
-
-    timers.delete(video);
-  }
-
-  function smartCheck(video) {
-    if (!video.isConnected || video.readyState < 2) return;
-
-    const rect = video.getBoundingClientRect();
-    if (rect.width < 120 || rect.height < 80) return;
-
-    try {
-      const canvas = document.createElement('canvas');
-      const W = 64;
-      const H = 36;
-      canvas.width = W;
-      canvas.height = H;
-
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(video, 0, 0, W, H);
-
-      const { data } = ctx.getImageData(0, 0, W, H);
-      let luminanceTotal = 0;
-      let brightPixels = 0;
-
+      ctx.drawImage(video, 0, 0, SAMPLE_W, SAMPLE_H);
+      const { data } = ctx.getImageData(0, 0, SAMPLE_W, SAMPLE_H);
+      let sum = 0;
+      const n = data.length / 4;
       for (let i = 0; i < data.length; i += 4) {
-        const r = data[i] / 255;
-        const g = data[i + 1] / 255;
-        const b = data[i + 2] / 255;
-        const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
-        luminanceTotal += y;
-        if (y > 0.80) brightPixels++;
+        sum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
       }
-
-      const pixels = W * H;
-      const mean = luminanceTotal / pixels;
-      const brightRatio = brightPixels / pixels;
-      const shouldDarken = mean >= settings.whiteThreshold || brightRatio >= 0.42;
-
-      setEnabledState(video, shouldDarken);
-    } catch {
-      // Some protected/remote players cannot be sampled. Keep them usable.
-      enable(video);
+      return sum / n;
+    } catch (err) {
+      // Cross-origin / DRM video: canvas "tainted" oldu, tarayıcı piksel
+      // okumayı engelliyor. Bu beklenen bir durum, hata değil.
+      return null;
     }
-  }
-
-  function enable(video) {
-    video.classList.add('dark-video-enabled');
-  }
-
-  function disable(video) {
-    video.classList.remove('dark-video-enabled');
-  }
-
-  function setEnabledState(video, enabled) {
-    if (enabled) enable(video);
-    else disable(video);
   }
 })();

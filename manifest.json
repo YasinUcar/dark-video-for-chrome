@@ -1,25 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Dark Video",
-  "short_name": "Dark Video",
+  "name": "Video Karanlık Mod",
   "version": "1.0.0",
-  "description": "Automatically darkens bright HTML5 videos on YouTube, Udemy, and other video websites.",
+  "description": "Videolardaki açık/beyaz arka planları otomatik algılayıp karanlık moda çevirir. YouTube, Udemy ve video oynatan tüm sitelerde çalışır.",
   "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
-    "default_title": "Dark Video",
     "default_popup": "popup.html",
+    "default_title": "Video Karanlık Mod",
     "default_icon": {
       "16": "icons/icon16.png",
-      "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
-  "icons": {
-    "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+  "background": {
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -29,5 +30,11 @@
       "run_at": "document_idle",
       "all_frames": true
     }
-  ]
+  ],
+  "commands": {
+    "toggle-dark": {
+      "suggested_key": { "default": "Alt+Shift+D" },
+      "description": "Bu sayfadaki videoyu karanlık/aydınlık yap"
+    }
+  }
 }

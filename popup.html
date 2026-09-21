@@ -1,39 +1,48 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="tr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Dark Video</title>
-  <style>
-    :root{color-scheme:dark}
-    *{box-sizing:border-box}
-    body{width:320px;margin:0;padding:18px;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f1115;color:#f2f4f7}
-    .brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-    .brand img{width:36px;height:36px;border-radius:9px}
-    h1{font-size:18px;margin:0}
-    .sub{font-size:11px;color:#9da5b1;margin-top:2px}
-    .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
-    label{font-size:13px}
-    select,input[type=range]{width:165px}
-    button{width:100%;padding:10px 12px;border:0;border-radius:9px;background:#fff;color:#111;cursor:pointer;font-weight:600}
-    .hint{margin-top:12px;font-size:11px;line-height:1.45;color:#969eaa}
-    .status{font-size:12px;padding:9px 10px;background:#181b21;border:1px solid #252a33;border-radius:9px;margin-top:12px}
-  </style>
+<meta charset="UTF-8">
+<title>Video Karanlık Mod</title>
+<link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="brand">
-    <img src="icons/icon48.png" alt="">
-    <div><h1>Dark Video</h1><div class="sub">Comfortable video viewing</div></div>
-  </div>
+  <header>
+    <h1>🌙 Video Karanlık Mod</h1>
+    <label class="switch">
+      <input type="checkbox" id="globalEnabled">
+      <span class="slider"></span>
+    </label>
+  </header>
 
-  <div class="row"><label for="enabled">Enabled</label><input id="enabled" type="checkbox"></div>
-  <div class="row"><label for="mode">Mode</label><select id="mode"><option value="smart">Smart — light videos only</option><option value="always">Always dark</option></select></div>
-  <div class="row"><label for="invert">Darkness</label><input id="invert" type="range" min="0.65" max="1" step="0.01"></div>
-  <div class="row"><label for="brightness">Brightness</label><input id="brightness" type="range" min="0.60" max="1.10" step="0.01"></div>
+  <section class="row">
+    <label for="autoDetect">Otomatik algıla (açık arka planı bul)</label>
+    <input type="checkbox" id="autoDetect">
+  </section>
 
-  <button id="save">Apply settings</button>
-  <div id="status" class="status">Ready</div>
-  <div class="hint">Dark Video works on standard HTML5 video players, including YouTube, Udemy, and many other sites. Smart mode only darkens videos that appear bright.</div>
-  <script src="popup.js"></script>
+  <section class="row" id="thresholdRow">
+    <label for="threshold">Hassasiyet: <span id="thresholdValue">140</span></label>
+    <input type="range" id="threshold" min="60" max="220" step="5">
+  </section>
+
+  <section class="row modes">
+    <label><input type="radio" name="mode" id="modeInvert"> Ters çevir (kod / ekran görüntüsü için)</label>
+    <label><input type="radio" name="mode" id="modeDim"> Karart (renkli video için)</label>
+  </section>
+
+  <hr>
+
+  <section class="row">
+    <div class="site-label">Site: <span id="siteLabel">—</span></div>
+    <button id="siteToggle">Bu sitede kapat</button>
+  </section>
+
+  <button id="pageForce" class="full-width">Bu sayfayı şimdi aç/kapat (Alt+Shift+D)</button>
+
+  <p class="note">
+    Not: YouTube gibi bazı sitelerde tarayıcı güvenliği nedeniyle otomatik algılama
+    çalışmayabilir. Böyle durumlarda otomatik algılamayı kapatıp yukarıdaki kısayolu
+    kullanabilirsin.
+  </p>
 </body>
+<script src="popup.js"></script>
 </html>

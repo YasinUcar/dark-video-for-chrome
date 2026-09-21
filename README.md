@@ -1,75 +1,50 @@
-# Dark Video 🌙
+# Video Karanlık Mod (Chrome Uzantısı)
 
-A lightweight Chrome extension that automatically makes bright HTML5 videos darker and more comfortable to watch.
+Video oynatan sayfalarda (YouTube, Udemy, vb.) videonun kendi içeriği açık/beyaz
+arka planlıysa (ör. beyaz temalı kod ekranı, beyaz slayt), videoyu otomatik olarak
+karanlığa çevirir. Sayfanın geri kalanına dokunmaz, sadece `<video>` etiketine CSS
+filtresi uygular.
 
-Dark Video is designed for video-based learning, coding tutorials, lectures, and other content where a bright white video background can be distracting.
+## Nasıl çalışır?
+- Video oynarken küçük bir canvas'a periyodik olarak bir kare çizilip ortalama
+  parlaklığı ölçülür.
+- Parlaklık eşiği aşarsa (varsayılan: 140/255) videoya `invert(1) hue-rotate(180deg)`
+  filtresi uygulanır — kod/ekran görüntüsü videoları için en doğal sonucu bu verir.
+  İstersen ayarlardan "karart" moduna geçebilirsin (renkli/gerçek görüntülü video
+  için daha uygun, ters çevirme yapmaz sadece parlaklığı düşürür).
 
-## What it does
+## Kurulum (paketlenmemiş / unpacked)
+1. Zip dosyasını bir klasöre çıkar.
+2. Chrome'da `chrome://extensions` adresine git.
+3. Sağ üstten "Geliştirici modu"nu aç.
+4. "Paketlenmemiş öğe yükle" (Load unpacked) butonuna tıkla ve çıkardığın klasörü seç.
+5. Sağ üstteki uzantı simgesine tıklayarak ayarları aç.
 
-- **Smart Mode** — checks the current video frame and applies the dark filter when the video appears predominantly bright.
-- **Always Dark** — applies the dark filter to every detected HTML5 video.
-- **Adjustable Darkness** — control how strongly the video is darkened.
-- **Adjustable Brightness** — fine-tune the final result.
-- **Runs locally** — video processing happens directly in the browser; no account or external backend is required.
-- **Works across sites** — targets standard HTML5 `<video>` elements, including many players used by YouTube, Udemy, and other video websites.
+## Önemli sınırlama (tarayıcı güvenliği)
+Bazı sitelerde (özellikle YouTube ve DRM korumalı içerikler — Netflix, bazı Udemy
+oynatıcıları vb.) tarayıcı, videonun piksellerini JavaScript ile okumayı güvenlik
+gereği (CORS / DRM) tamamen engeller. Bu durumda otomatik algılama o video için
+çalışmaz — bu bir hata değil, tarayıcının kasıtlı güvenlik kısıtlaması ve bir
+uzantının bunu aşması mümkün değil.
 
-## How to install
+Bu gibi durumlarda:
+- Popup'tan "Otomatik algıla"yı kapatıp videoyu her zaman seçili modda gösterebilirsin, ya da
+- `Alt+Shift+D` kısayoluyla o sayfadaki videoyu anında elle aç/kapat yapabilirsin
+  (kısayolu `chrome://extensions/shortcuts` sayfasından değiştirebilirsin).
 
-This project is distributed as an unpacked Chrome extension.
+## Ayarlar (uzantı simgesine tıkla)
+- **Genel aç/kapat**: Uzantıyı tamamen devre dışı bırakır.
+- **Otomatik algıla**: Açıkken parlaklığa göre karar verir; kapalıyken sitede her
+  zaman seçili modu uygular.
+- **Hassasiyet**: Eşik değeri ne kadar düşükse o kadar çabuk "açık arka plan" sayılır.
+- **Ters çevir / Karart**: İki farklı karanlık mod stratejisi.
+- **Bu sitede kapat**: Sadece geçerli alan adında uzantıyı devre dışı bırakır
+  (ör. film izlediğin bir sitede rengi bozmasın istersen).
 
-1. Download or clone this repository.
-2. Open `chrome://extensions/` in Chrome or another Chromium-based browser.
-3. Enable **Developer mode**.
-4. Click **Load unpacked**.
-5. Select the repository folder (the folder containing `manifest.json`).
-6. Open a video website and click the **Dark Video** extension icon.
-
-Chrome may show a notice that the extension is running in developer mode. That is expected for an unpacked extension.
-
-## How to use
-
-Open the extension popup and choose:
-
-- **Enabled** — turn Dark Video on or off.
-- **Smart — light videos only** — automatically darken bright videos.
-- **Always dark** — always apply the filter.
-- **Darkness** — adjust the strength of the dark effect.
-- **Brightness** — adjust the resulting brightness.
-
-Click **Apply settings** after changing the options.
-
-## How it works
-
-In Smart Mode, Dark Video samples a small version of the current video frame and estimates its overall brightness. When the frame is sufficiently bright, a CSS filter is applied directly to the video element.
-
-This keeps the extension lightweight and avoids sending video data to a server.
-
-## Compatibility
-
-Dark Video works with pages that expose a standard HTML5 `<video>` element.
-
-Some DRM-protected, canvas-based, embedded, or heavily customized players may behave differently. In those cases the browser may not allow the current video frame to be sampled, and Smart Mode may not be able to determine whether the video is bright.
-
-## Permissions
-
-The extension only requests the `storage` permission so it can save your settings.
-
-## Project structure
-
-```text
-Dark-Video/
-├── content.js
-├── content.css
-├── manifest.json
-├── popup.html
-├── popup.js
-└── icons/
-    ├── icon16.png
-    ├── icon32.png
-    ├── icon48.png
-    └── icon128.png
-```
-
-## License
-
-MIT License. See `LICENSE` for details.
+## Dosyalar
+- `manifest.json` — uzantı tanımı (Manifest V3)
+- `content.js` — video tespiti, parlaklık ölçümü, filtre uygulama
+- `content.css` — karanlık filtre sınıfları
+- `background.js` — kurulum ve klavye kısayolu
+- `popup.html / popup.css / popup.js` — ayarlar arayüzü
+- `icons/` — uzantı ikonları

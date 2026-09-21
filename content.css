@@ -1,8 +1,9 @@
-.dark-video-enabled {
-  filter: invert(var(--dark-video-invert, 0.92))
-          hue-rotate(var(--dark-video-hue, 180deg))
-          brightness(var(--dark-video-brightness, 0.9))
-          contrast(var(--dark-video-contrast, 1.02))
-          saturate(var(--dark-video-saturation, 0.9)) !important;
+video.vdm-invert {
+  filter: invert(1) hue-rotate(180deg) !important;
+  transition: filter 0.25s ease;
 }
-video.dark-video-enabled { transform: translateZ(0); }
+
+video.vdm-dim {
+  filter: brightness(0.55) contrast(1.05) !important;
+  transition: filter 0.25s ease;
+}
