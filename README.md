@@ -1,50 +1,45 @@
-# Video Karanlık Mod (Chrome Uzantısı)
+# Video Dark Mode (Chrome Extension)
 
-Video oynatan sayfalarda (YouTube, Udemy, vb.) videonun kendi içeriği açık/beyaz
-arka planlıysa (ör. beyaz temalı kod ekranı, beyaz slayt), videoyu otomatik olarak
-karanlığa çevirir. Sayfanın geri kalanına dokunmaz, sadece `<video>` etiketine CSS
-filtresi uygular.
+On pages that play videos (YouTube, Udemy, etc.), if the video's own content has a bright/white background (for example, a white-themed code editor or a white slide), it automatically makes the video dark. It does not affect the rest of the page; it only applies a CSS filter to the `<video>` element.
 
-## Nasıl çalışır?
-- Video oynarken küçük bir canvas'a periyodik olarak bir kare çizilip ortalama
-  parlaklığı ölçülür.
-- Parlaklık eşiği aşarsa (varsayılan: 140/255) videoya `invert(1) hue-rotate(180deg)`
-  filtresi uygulanır — kod/ekran görüntüsü videoları için en doğal sonucu bu verir.
-  İstersen ayarlardan "karart" moduna geçebilirsin (renkli/gerçek görüntülü video
-  için daha uygun, ters çevirme yapmaz sadece parlaklığı düşürür).
+## How does it work?
 
-## Kurulum (paketlenmemiş / unpacked)
-1. Zip dosyasını bir klasöre çıkar.
-2. Chrome'da `chrome://extensions` adresine git.
-3. Sağ üstten "Geliştirici modu"nu aç.
-4. "Paketlenmemiş öğe yükle" (Load unpacked) butonuna tıkla ve çıkardığın klasörü seç.
-5. Sağ üstteki uzantı simgesine tıklayarak ayarları aç.
+* While the video is playing, a frame is periodically drawn to a small canvas and its average brightness is measured.
+* If the brightness exceeds the threshold (default: 140/255), the `invert(1) hue-rotate(180deg)` filter is applied to the video — this produces the most natural result for code/screen-recording videos.
+  You can also switch to "darken" mode in the settings (more suitable for colorful/real-life videos; it does not invert the colors, it only reduces the brightness).
 
-## Önemli sınırlama (tarayıcı güvenliği)
-Bazı sitelerde (özellikle YouTube ve DRM korumalı içerikler — Netflix, bazı Udemy
-oynatıcıları vb.) tarayıcı, videonun piksellerini JavaScript ile okumayı güvenlik
-gereği (CORS / DRM) tamamen engeller. Bu durumda otomatik algılama o video için
-çalışmaz — bu bir hata değil, tarayıcının kasıtlı güvenlik kısıtlaması ve bir
-uzantının bunu aşması mümkün değil.
+## Installation (unpacked)
 
-Bu gibi durumlarda:
-- Popup'tan "Otomatik algıla"yı kapatıp videoyu her zaman seçili modda gösterebilirsin, ya da
-- `Alt+Shift+D` kısayoluyla o sayfadaki videoyu anında elle aç/kapat yapabilirsin
-  (kısayolu `chrome://extensions/shortcuts` sayfasından değiştirebilirsin).
+1. Extract the ZIP file into a folder.
+2. Go to `chrome://extensions` in Chrome.
+3. Enable **Developer mode** in the top-right corner.
+4. Click the **Load unpacked** button and select the folder you extracted.
+5. Click the extension icon in the top-right corner to open the settings.
 
-## Ayarlar (uzantı simgesine tıkla)
-- **Genel aç/kapat**: Uzantıyı tamamen devre dışı bırakır.
-- **Otomatik algıla**: Açıkken parlaklığa göre karar verir; kapalıyken sitede her
-  zaman seçili modu uygular.
-- **Hassasiyet**: Eşik değeri ne kadar düşükse o kadar çabuk "açık arka plan" sayılır.
-- **Ters çevir / Karart**: İki farklı karanlık mod stratejisi.
-- **Bu sitede kapat**: Sadece geçerli alan adında uzantıyı devre dışı bırakır
-  (ör. film izlediğin bir sitede rengi bozmasın istersen).
+## Important limitation (browser security)
 
-## Dosyalar
-- `manifest.json` — uzantı tanımı (Manifest V3)
-- `content.js` — video tespiti, parlaklık ölçümü, filtre uygulama
-- `content.css` — karanlık filtre sınıfları
-- `background.js` — kurulum ve klavye kısayolu
-- `popup.html / popup.css / popup.js` — ayarlar arayüzü
-- `icons/` — uzantı ikonları
+On some websites (especially YouTube and DRM-protected content — Netflix, some Udemy players, etc.), the browser completely prevents JavaScript from reading the video's pixels for security reasons (CORS / DRM). In these cases, automatic detection will not work for that video — this is not a bug, but an intentional browser security restriction that an extension cannot bypass.
+
+In these cases:
+
+* You can disable **"Auto detect"** from the popup and always display the video using the selected mode, or
+* Use the `Alt+Shift+D` shortcut to instantly toggle the dark mode for the video on the current page
+  (you can change the shortcut from `chrome://extensions/shortcuts`).
+
+## Settings (click the extension icon)
+
+* **Global on/off**: Completely disables the extension.
+* **Auto detect**: When enabled, it decides based on brightness; when disabled, it always applies the selected mode on the site.
+* **Sensitivity**: The lower the threshold, the sooner the video is considered to have a "bright background."
+* **Invert / Darken**: Two different dark mode strategies.
+* **Disable on this site**: Disables the extension only for the current domain
+  (for example, if you do not want the colors to be altered on a website where you watch movies).
+
+## Files
+
+* `manifest.json` — extension definition (Manifest V3)
+* `content.js` — video detection, brightness measurement, filter application
+* `content.css` — dark filter classes
+* `background.js` — installation and keyboard shortcut
+* `popup.html / popup.css / popup.js` — settings interface
+* `icons/` — extension icons
